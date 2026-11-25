@@ -12,6 +12,9 @@ class DQResult:
     column: str
     total_rows: int
     failed_rows: int
+    @property
+    def valid_rows(self) -> int:
+        return max(0, self.total_rows - self.failed_rows)
     pass_rate: float
     passed: bool
     details: str = ""
@@ -36,9 +39,9 @@ def _build_result(
     threshold: float = 100.0,
     details: str = "",
 ) -> DQResult:
-    total = total or 0
-    failed = failed or 0
-    pass_rate = 100.0 if total == 0 else ((total - failed) / total) * 100.0
+    total_int = int(total or 0)
+    failed_int = int(failed or 0)
+    pass_rate = 100.0 if total == 0 else ((total_int - failed_int) / total) * 100.0
     return DQResult(
         check_name=check_name,
         dimension=dimension,
@@ -314,3 +317,53 @@ def check_accuracy_reconciliation(
             + (f", TargetNulls={tgt_nulls}" if metric_col else "")
         ),
     )
+
+    
+def format_results_table(results: Sequence[DQResult]) -> str:
+    """Format DQResult items into an aligned report table."""
+    if not results:
+        return "No check results to display."
+
+    headers = (
+        "STATUS",
+        "DIMENSION",
+        "CHECK",
+        "TABLE.COLUMN",
+        "TOTAL ROWS",
+        "VALID ROWS",
+        "FAILED ROWS",
+        "VALID %",
+    )
+
+    rows = []
+    for r in results:
+        target = f"{r.table}.{r.column}"
+        rows.append((
+            "PASS" if r.passed else "FAIL",
+            r.dimension.upper(),
+            r.check_name,
+            target,
+            f"{r.total_rows:,}",
+            f"{r.valid_rows:,}",
+            f"{r.failed_rows:,}",
+            f"{r.pass_rate:.2f}%",
+        ))
+
+    col_widths = [
+        max(len(headers[i]), *(len(row[i]) for row in rows))
+        for i in range(len(headers))
+    ]
+
+    def _fmt_row(values: tuple[str, ...]) -> str:
+        # Left-align text columns (0..3), right-align numeric columns (4..7)
+        cells = [
+            values[i].ljust(col_widths[i]) if i < 4 else values[i].rjust(col_widths[i])
+            for i in range(len(values))
+        ]
+        return " | ".join(cells)
+
+    line = "-" * (sum(col_widths) + 3 * (len(headers) - 1))
+    output = [line, _fmt_row(headers), line]
+    output.extend(_fmt_row(row) for row in rows)
+    output.append(line)
+    return "\n".join(output)
