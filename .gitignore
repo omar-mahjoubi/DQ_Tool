@@ -1,0 +1,19 @@
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Secrets & database credentials (CRITICAL)
+.env
+*.env
+config.local.yaml
+secrets.json
+
+# IDE settings
+.vscode/
+.idea/
