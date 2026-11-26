@@ -1,0 +1,23 @@
+{
+  "suite_name": "sakila_film_dq",
+  "tables": {
+    "film": {
+      "schema": null,
+      "columns": {
+        "title": [
+          { "type": "completeness", "blank": true, "threshold": 100.0 }
+        ],
+        "release_year": [
+          { "type": "completeness" },
+          { "type": "validity_range", "min": 1990, "max": 2026 }
+        ],
+        "rating": [
+          { "type": "validity_allowed", "allowed": ["G", "PG", "PG-13", "NC-17"] }
+        ],
+        "rental_rate": [
+          { "type": "validity_range", "min": 0.33, "max": 2.00 }
+        ]
+      }
+    }
+  }
+}

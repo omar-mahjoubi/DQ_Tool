@@ -1,0 +1,6 @@
+﻿executed_at,status,dimension,check_name,table_column,table,column,total_rows,valid_rows,failed_rows,valid_pct,details
+2026-11-26T14:11:23.034663+00:00,PASS,completeness,not_null_or_blank,film.title,film,title,1000,1000,0,100.0,
+2026-11-26T14:11:23.034663+00:00,PASS,completeness,not_null,film.release_year,film,release_year,1000,1000,0,100.0,
+2026-11-26T14:11:23.034663+00:00,PASS,validity,value_range,film.release_year,film,release_year,1000,1000,0,100.0,"Expected range [1990, 2026] (NULLs fail)"
+2026-11-26T14:11:23.034663+00:00,FAIL,validity,allowed_values,film.rating,film,rating,1000,805,195,80.5,"Allowed: ['G', 'PG', 'PG-13', 'NC-17'] (NULLs fail)"
+2026-11-26T14:11:23.034663+00:00,FAIL,validity,value_range,film.rental_rate,film,rental_rate,1000,341,659,34.1,"Expected range [0.33, 2.0] (NULLs fail)"
