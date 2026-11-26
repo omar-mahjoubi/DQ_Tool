@@ -6,6 +6,7 @@ from sqlalchemy import inspect
 import cmd
 import shlex
 from typing import Optional
+from suite import run_suite, export_results
 
 
 from utils import connectors, checks
@@ -49,6 +50,8 @@ class DQShell(cmd.Cmd):
         super().__init__()
         self.engine: Optional[Engine] = None
         self.config: Optional[DBConfig] = None
+        self.last_results: list[DQResult] = []
+        self.session_results: list[DQResult] = []
 
     def _require_connection(self) -> bool:
         if self.engine is None:
@@ -261,10 +264,66 @@ class DQShell(cmd.Cmd):
                 )
 
             print("\n" + format_results_table(results) + "\n")
+            self.last_results = results
+            self.session_results.extend(results)
 
         except Exception as exc:
             print(f"Check execution error: {exc}")
             traceback.print_exc()
+
+    def do_run_suite(self, arg: str):
+        """Run all rules in a suite file. Usage: run_suite film_rules.json [--export out.csv]"""
+        if not self._require_connection():
+            return
+
+        parser = argparse.ArgumentParser(prog="run_suite")
+        parser.add_argument("file", help="Path to .json, .toml, or .yaml suite file")
+        parser.add_argument("--export", default=None, help="Optional export file path (.csv or .json)")
+
+        args = _safe_parse(parser, arg)
+        if not args:
+            return
+
+        try:
+            results = run_suite(self.engine, args.file)
+            self.last_results = results
+            self.session_results.extend(results)
+            print("\n" + format_results_table(results) + "\n")
+
+            if args.export:
+                saved_path = export_results(results, args.export)
+                print(f"Exported {len(results)} result(s) to {saved_path}")
+        except Exception as exc:
+            print(f"Suite execution error: {exc}")
+
+    
+    def do_report(self, arg: str):
+        """Display all check results accumulated in this session. Use '--clear' to reset."""
+        if arg.strip() == "--clear":
+            self.session_results.clear()
+            self.last_results.clear()
+            print("Session results cleared.")
+            return
+        print("\n" + format_results_table(self.session_results) + "\n")
+
+    def do_export(self, arg: str):
+        """Export last check/suite results (or --all for whole session) to CSV or JSON."""
+        parser = argparse.ArgumentParser(prog="export")
+        parser.add_argument("--out", required=True, help="Output path (e.g. results/dq.csv)")
+        parser.add_argument("--format", choices=["csv", "json"], default=None)
+        parser.add_argument("--all", action="store_true", help="Export entire session history instead of last run")
+
+        args = _safe_parse(parser, arg)
+        if not args:
+            return
+
+        target_results = self.session_results if args.all else self.last_results
+        try:
+            saved_path = export_results(target_results, args.out, fmt=args.format)
+            print(f"Exported {len(target_results)} result(s) to {saved_path}")
+        except Exception as exc:
+            print(f"Export error: {exc}")
+
 
     # ------------------------------------------------------------------
     # EXIT
